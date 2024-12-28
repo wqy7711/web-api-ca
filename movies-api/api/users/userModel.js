@@ -15,6 +15,10 @@ const UserSchema = new Schema({
       validator: (value) => passwordValidator.test(value),
       message: 'Password must be at least 8 characters long, and include at least one letter, one number, and one special character.'
     }
+  },
+  favorites: { 
+    type: [Number],
+    default: [] 
   }
 });
 
@@ -24,6 +28,27 @@ UserSchema.methods.comparePassword = async function (passw) {
 
 UserSchema.statics.findByUserName = function (username) {
   return this.findOne({ username: username });
+};
+
+UserSchema.statics.addFavorite = function(username, movieId) {
+  return this.findOneAndUpdate(
+    { username: username },
+    { $addToSet: { favorites: movieId } },
+    { new: true }
+  );
+};
+
+UserSchema.statics.removeFavorite = function(username, movieId) {
+  return this.findOneAndUpdate(
+    { username: username },
+    { $pull: { favorites: movieId } },
+    { new: true }
+  );
+};
+
+UserSchema.statics.getFavorites = function(username) {
+  return this.findOne({ username: username })
+    .select('favorites');
 };
 
 UserSchema.pre('save', async function(next) {

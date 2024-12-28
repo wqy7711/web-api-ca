@@ -32,3 +32,5 @@ export const getGenres = async () => {
         throw error;
     }
 };
+
+

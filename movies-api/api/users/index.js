@@ -2,9 +2,47 @@ import express from 'express';
 import User from './userModel';
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
+import authenticate from '../../authenticate';
 
 
 const router = express.Router(); // eslint-disable-line
+
+router.get('/:userName/favorites', authenticate, asyncHandler(async (req, res) => {
+    const userName = req.params.userName;
+    const user = await User.getFavorites(userName);
+    if (!user) {
+        return res.status(404).json({ code: 404, msg: 'User not found.' });
+    }
+    res.status(200).json(user.favorites);
+}));
+
+router.post('/:userName/favorites', authenticate, asyncHandler(async (req, res) => {
+    const userName = req.params.userName;
+    const { movieId } = req.body;
+    
+    if (!movieId) {
+        return res.status(400).json({ code: 400, msg: 'Movie id is required.' });
+    }
+
+    const user = await User.addFavorite(userName, movieId);
+    if (!user) {
+        return res.status(404).json({ code: 404, msg: 'User not found.' });
+    }
+    
+    res.status(200).json({ code: 200, msg: 'Movie added to favorites.', user });
+}));
+
+router.delete('/:userName/favorites/:movieId', authenticate, asyncHandler(async (req, res) => {
+    const userName = req.params.userName;
+    const movieId = Number(req.params.movieId);
+
+    const user = await User.removeFavorite(userName, movieId);
+    if (!user) {
+        return res.status(404).json({ code: 404, msg: 'User not found.' });
+    }
+
+    res.status(200).json({ code: 200, msg: 'Movie removed from favorites.', user });
+}));
 
 // Get all users
 router.get('/', async (req, res) => {
@@ -63,6 +101,7 @@ async function authenticateUser(req, res) {
         res.status(401).json({ success: false, msg: 'Wrong password.' });
     }
 }
+
 
 
 export default router;
