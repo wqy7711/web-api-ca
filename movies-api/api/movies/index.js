@@ -9,6 +9,89 @@ import { getGenres } from '../tmdb-api';
 
 const router = express.Router();
 
+router.get('/search', asyncHandler(async (req, res) => {
+    let { 
+        query = "", 
+        genre = "0",
+        year = "",
+        sort = "popularity", 
+        page = 1, 
+        limit = 10 
+    } = req.query;
+
+    [page, limit] = [+page, +limit]; // Convert to numbers
+    const genreId = Number(genre);
+
+    let searchCriteria = {};
+    
+    if (query) {
+        searchCriteria.title = new RegExp(query, 'i');
+    }
+
+    if (genreId > 0) {
+        searchCriteria.genre_ids = genreId;
+    }
+
+    if (year) {
+        searchCriteria.release_date = new RegExp(`^${year}`, 'i');
+    }
+
+    let sortCriteria = {};
+    switch (sort) {
+        case 'title_asc':
+            sortCriteria.title = 1;
+            break;
+        case 'title_desc':
+            sortCriteria.title = -1;
+            break;
+        case 'release_date_asc':
+            sortCriteria.release_date = 1;
+            break;
+        case 'release_date_desc':
+            sortCriteria.release_date = -1;
+            break;
+        default:
+            sortCriteria.popularity = -1;
+    }
+
+    const [total_results, results] = await Promise.all([
+        movieModel.countDocuments(searchCriteria),
+        movieModel.find(searchCriteria)
+            .sort(sortCriteria)
+            .limit(limit)
+            .skip((page - 1) * limit)
+    ]);
+
+    const total_pages = Math.ceil(total_results / limit);
+
+    const returnObject = {
+        page,
+        total_pages,
+        total_results,
+        results
+    };
+
+    res.status(200).json(returnObject);
+}));
+
+router.get('/tmdb/search', asyncHandler(async (req, res) => {
+    const { query, genre, year, page = 1 } = req.query;
+    
+    let url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.TMDB_KEY}&language=en-US&query=${query}&page=${page}&include_adult=false`;
+    
+    if (genre) {
+        url += `&with_genres=${genre}`;
+    }
+    if (year) {
+        url += `&year=${year}`;
+    }
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.status(200).json(data);
+}));
+
 router.get('/', asyncHandler(async (req, res) => {
     let { page = 1, limit = 10 } = req.query; // destructure page and limit and set default values
     [page, limit] = [+page, +limit]; //trick to convert to numeric (req.query will contain string values)

@@ -33,4 +33,25 @@ export const getGenres = async () => {
     }
 };
 
+export const searchMovies = async (query, genre, year, page = 1) => {
+    try {
+        let url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.TMDB_KEY}&language=en-US&query=${query}&page=${page}&include_adult=false`;
+        
+        if (genre) {
+            url += `&with_genres=${genre}`;
+        }
+        if (year) {
+            url += `&year=${year}`;
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error((await response.json()).message);
+        }
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
 
