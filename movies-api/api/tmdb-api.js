@@ -54,4 +54,34 @@ export const searchMovies = async (query, genre, year, page = 1) => {
     }
 };
 
+export const getActorDetails = async (actorId) => {
+    try {
+        const response = await fetch(
+            `https://api.themoviedb.org/3/person/${actorId}?api_key=${process.env.TMDB_KEY}&language=en-US`
+        );
+
+        if (!response.ok) {
+            throw new Error((await response.json()).message);
+        }
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
+export const getActorMovies = async (actorId) => {
+    try {
+        const response = await fetch(
+            `https://api.themoviedb.org/3/person/${actorId}/movie_credits?api_key=${process.env.TMDB_KEY}&language=en-US`
+        );
+
+        if (!response.ok) {
+            throw new Error((await response.json()).message);
+        }
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
 
