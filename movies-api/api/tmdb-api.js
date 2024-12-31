@@ -84,4 +84,36 @@ export const getActorMovies = async (actorId) => {
     }
 };
 
+// Get movie recommendations from TMDB 
+export const getMovieRecommendations = async (movieId, page = 1) => {
+    try {
+        const response = await fetch(
+            `https://api.themoviedb.org/3/movie/${movieId}/recommendations?api_key=${process.env.TMDB_KEY}&language=en-US&page=${page}`
+        );
+
+        if (!response.ok) {
+            throw new Error((await response.json()).message);
+        }
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
+// Get similar movies from TMDB
+export const getSimilarMovies = async (movieId, page = 1) => {
+    try {
+        const response = await fetch(
+            `https://api.themoviedb.org/3/movie/${movieId}/similar?api_key=${process.env.TMDB_KEY}&language=en-US&page=${page}`
+        );
+
+        if (!response.ok) {
+            throw new Error((await response.json()).message);
+        }
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
+};
+
 

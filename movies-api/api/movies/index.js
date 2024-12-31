@@ -3,11 +3,28 @@ import asyncHandler from 'express-async-handler';
 import express from 'express';
 import {getUpcomingMovies} from '../tmdb-api';
 import { getGenres } from '../tmdb-api';
-
+import {
+    getMovieRecommendations,
+    getSimilarMovies,
+} from '../tmdb-api';
 
   
 
 const router = express.Router();
+
+router.get('/:id/recommendations', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    const recommendations = await getMovieRecommendations(id, page);
+    res.status(200).json(recommendations);
+}));
+
+router.get('/:id/similar', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    const similar = await getSimilarMovies(id, page);
+    res.status(200).json(similar);
+}));
 
 router.get('/search', asyncHandler(async (req, res) => {
     let { 
