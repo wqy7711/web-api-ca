@@ -31,6 +31,32 @@ router.get('/user/:userId', authenticate, asyncHandler(async (req, res) => {
     res.status(200).json(reviews);
 }));
 
+// Get the latest reviews
+router.get('/latest/:userId', authenticate, asyncHandler(async (req, res) => {
+    const limit = parseInt(req.query.limit) || 5;
+    
+    if (limit < 1 || limit > 20) {
+        return res.status(400).json({
+            message: 'Limit must be between 1 and 20',
+            status_code: 400
+        });
+    }
+
+    const reviews = await Review.find({ userId: req.params.userId })
+        .sort('-createdAt')
+        .limit(limit)
+        .populate('userId', 'username');
+        
+    if (!reviews || reviews.length === 0) {
+        return res.status(404).json({
+            message: 'No reviews found for this user',
+            status_code: 404
+        });
+    }
+
+    res.status(200).json(reviews);
+}));
+
 // Create a new review
 router.post('/', authenticate, asyncHandler(async (req, res) => {
     if (!req.body.movieId || !req.body.content || !req.body.rating) {
