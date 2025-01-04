@@ -1,165 +1,218 @@
 import movieModel from './movieModel';
 import asyncHandler from 'express-async-handler';
 import express from 'express';
-import {getUpcomingMovies} from '../tmdb-api';
-import { getGenres } from '../tmdb-api';
 import {
+    getMovie,
+    discoverMovies,
+    getUpcomingMovies,
+    getGenres,
     getMovieRecommendations,
     getSimilarMovies,
+    getTrendingMovies,
+    getNowPlayingMovies,
+    searchMovies,
+    getMovieCredits,
+    getMovieImages,
+    getMovieReviews
 } from '../tmdb-api';
-
-  
 
 const router = express.Router();
 
-router.get('/:id/recommendations', asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const recommendations = await getMovieRecommendations(id, page);
-    res.status(200).json(recommendations);
-}));
-
-router.get('/:id/similar', asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const page = parseInt(req.query.page) || 1;
-    const similar = await getSimilarMovies(id, page);
-    res.status(200).json(similar);
-}));
-
-router.get('/search', asyncHandler(async (req, res) => {
-    let { 
-        query = "", 
-        genre = "0",
-        year = "",
-        sort = "popularity", 
-        page = 1, 
-        limit = 10 
-    } = req.query;
-
-    [page, limit] = [+page, +limit]; // Convert to numbers
-    const genreId = Number(genre);
-
-    let searchCriteria = {};
-    
-    if (query) {
-        searchCriteria.title = new RegExp(query, 'i');
-    }
-
-    if (genreId > 0) {
-        searchCriteria.genre_ids = genreId;
-    }
-
-    if (year) {
-        searchCriteria.release_date = new RegExp(`^${year}`, 'i');
-    }
-
-    let sortCriteria = {};
-    switch (sort) {
-        case 'title_asc':
-            sortCriteria.title = 1;
-            break;
-        case 'title_desc':
-            sortCriteria.title = -1;
-            break;
-        case 'release_date_asc':
-            sortCriteria.release_date = 1;
-            break;
-        case 'release_date_desc':
-            sortCriteria.release_date = -1;
-            break;
-        default:
-            sortCriteria.popularity = -1;
-    }
-
-    const [total_results, results] = await Promise.all([
-        movieModel.countDocuments(searchCriteria),
-        movieModel.find(searchCriteria)
-            .sort(sortCriteria)
-            .limit(limit)
-            .skip((page - 1) * limit)
-    ]);
-
-    const total_pages = Math.ceil(total_results / limit);
-
-    const returnObject = {
-        page,
-        total_pages,
-        total_results,
-        results
-    };
-
-    res.status(200).json(returnObject);
-}));
-
-router.get('/tmdb/search', asyncHandler(async (req, res) => {
-    const { query, genre, year, page = 1 } = req.query;
-    
-    let url = `https://api.themoviedb.org/3/search/movie?api_key=${process.env.TMDB_KEY}&language=en-US&query=${query}&page=${page}&include_adult=false`;
-    
-    if (genre) {
-        url += `&with_genres=${genre}`;
-    }
-    if (year) {
-        url += `&year=${year}`;
-    }
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    res.status(200).json(data);
-}));
-
-router.get('/', asyncHandler(async (req, res) => {
-    let { page = 1, limit = 10 } = req.query; // destructure page and limit and set default values
-    [page, limit] = [+page, +limit]; //trick to convert to numeric (req.query will contain string values)
-
-    // Parallel execution of counting movies and getting movies using movieModel
-    const [total_results, results] = await Promise.all([
-        movieModel.estimatedDocumentCount(),
-        movieModel.find().limit(limit).skip((page - 1) * limit)
-    ]);
-    const total_pages = Math.ceil(total_results / limit); //Calculate total number of pages (= total No Docs/Number of docs per page) 
-
-    //construct return Object and insert into response object
-    const returnObject = {
-        page,
-        total_pages,
-        total_results,
-        results
-    };
-    res.status(200).json(returnObject);
-}));
-
-  router.get('/tmdb/upcoming', asyncHandler(async (req, res) => {
-    const upcomingMovies = await getUpcomingMovies();
-    res.status(200).json(upcomingMovies);
-}));
-
-router.get('/tmdb/genres', asyncHandler(async (req, res) => {
-    const genres = await getGenres();
-    res.status(200).json(genres);
-}));
-
-// Get movie details
-router.get('/:id', asyncHandler(async (req, res) => {
-    const id = parseInt(req.params.id);
-    const movie = await movieModel.findByMovieDBId(id);
-    if (movie) {
-        res.status(200).json(movie);
-    } else {
-        res.status(404).json({message: 'The movie you requested could not be found.', status_code: 404});
+// TMDB API routes
+router.get('/tmdb/discover', asyncHandler(async (req, res) => {
+    const { page = 1 } = req.query;
+    try {
+        const data = await discoverMovies(page);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
     }
 }));
 
 router.get('/tmdb/upcoming', asyncHandler(async (req, res) => {
-    const upcomingMovies = await getUpcomingMovies();
-    res.status(200).json(upcomingMovies);
+    try {
+        const data = await getUpcomingMovies();
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/trending', asyncHandler(async (req, res) => {
+    try {
+        const data = await getTrendingMovies();
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/now_playing', asyncHandler(async (req, res) => {
+    try {
+        const data = await getNowPlayingMovies();
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
 }));
 
 router.get('/tmdb/genres', asyncHandler(async (req, res) => {
-    const genres = await getGenres();
-    res.status(200).json(genres);
+    try {
+        const data = await getGenres();
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
 }));
 
+router.get('/tmdb/search', asyncHandler(async (req, res) => {
+    const { query, genre, year, page = 1 } = req.query;
+    try {
+        const data = await searchMovies(query, genre, year, page);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id', asyncHandler(async (req, res) => {
+    try {
+        const movie = await getMovie(req.params.id);
+        res.status(200).json(movie);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id/recommendations', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    try {
+        const data = await getMovieRecommendations(id, page);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id/similar', asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id);
+    const page = parseInt(req.query.page) || 1;
+    try {
+        const data = await getSimilarMovies(id, page);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id/credits', asyncHandler(async (req, res) => {
+    try {
+        const data = await getMovieCredits(req.params.id);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id/images', asyncHandler(async (req, res) => {
+    try {
+        const data = await getMovieImages(req.params.id);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/tmdb/:id/reviews', asyncHandler(async (req, res) => {
+    try {
+        const data = await getMovieReviews(req.params.id);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+// Database routes
+router.get('/', asyncHandler(async (req, res) => {
+    try {
+        let { page = 1, limit = 10 } = req.query;
+        [page, limit] = [+page, +limit];
+
+        const [total_results, results] = await Promise.all([
+            movieModel.estimatedDocumentCount(),
+            movieModel.find().limit(limit).skip((page - 1) * limit)
+        ]);
+        const total_pages = Math.ceil(total_results / limit);
+
+        res.status(200).json({
+            page,
+            total_pages,
+            total_results,
+            results
+        });
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
+
+router.get('/:id', asyncHandler(async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const movie = await movieModel.findByMovieDBId(id);
+        if (movie) {
+            res.status(200).json(movie);
+        } else {
+            res.status(404).json({
+                message: 'The movie you requested could not be found.',
+                status_code: 404
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            status_code: 500,
+            message: error.message || 'Internal server error'
+        });
+    }
+}));
 
 export default router;

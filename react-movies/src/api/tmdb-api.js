@@ -1,36 +1,40 @@
 export const getMovies = () => {
   return fetch(
-    `https://api.themoviedb.org/3/discover/movie?api_key=${process.env.REACT_APP_TMDB_KEY}&language=en-US&include_adult=false&include_video=false&page=1`
+    `http://localhost:8080/api/movies/tmdb/discover`, {
+      headers: {
+        'Accept': 'application/json'
+      }
+    }
   ).then((response) => {
     if (!response.ok) {
       return response.json().then((error) => {
-        throw new Error(error.status_message || "Something went wrong");
+        throw new Error(error.message || "Something went wrong");
       });
     }
     return response.json();
   })
   .catch((error) => {
-      throw error
+      console.error('Error fetching movies:', error);
+      throw error;
   });
 };
   
 export const getMovie = (args) => {
-  //console.log(args)
   const [, idPart] = args.queryKey;
   const { id } = idPart;
   return fetch(
-    `https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.REACT_APP_TMDB_KEY}`
+    `http://localhost:8080/api/movies/tmdb/${id}`
   ).then((response) => {
     if (!response.ok) {
       return response.json().then((error) => {
-        throw new Error(error.status_message || "Something went wrong");
+        throw new Error(error.message || "Something went wrong");
       });
     }
     return response.json();
   })
   .catch((error) => {
     throw error
- });
+  });
 };
   
   export const getGenres = () => {
