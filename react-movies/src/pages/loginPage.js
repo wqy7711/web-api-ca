@@ -8,21 +8,25 @@ import {
     Button,
     Box,
     Link,
-  } from "@mui/material";
+    Alert,
+} from "@mui/material";
 
 const LoginPage = () => {
-  const { loginWithEmail } = useAuth();
-  const [email, setEmail] = useState("");
+  const { login } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    
     try {
-      await loginWithEmail(email, password);
+      await login(username, password);
       navigate("/");
     } catch (error) {
-      alert("Login failed: " + error.message);
+      setError(error.message);
     }
   };
 
@@ -31,18 +35,22 @@ const LoginPage = () => {
       <Typography variant="h4" gutterBottom>
         Login
       </Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       <Box
         component="form"
         onSubmit={handleSubmit}
         sx={{ display: "flex", flexDirection: "column", gap: 2 }}
       >
         <TextField
-          label="Email"
-          type="email"
+          label="Username"
           variant="outlined"
           fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
         <TextField

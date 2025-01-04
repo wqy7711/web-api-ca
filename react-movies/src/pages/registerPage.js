@@ -8,21 +8,28 @@ import {
     Button,
     Box,
     Link,
-  } from "@mui/material";
+    Alert,
+} from "@mui/material";
 
 const RegisterPage = () => {
-  const { registerWithEmail } = useAuth();
-  const [email, setEmail] = useState("");
+  const { register, login } = useAuth();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    
     try {
-      await registerWithEmail(email, password);
+      // Register the user
+      await register(username, password);
+      // After successful registration, automatically log them in
+      await login(username, password);
       navigate("/");
     } catch (error) {
-      alert("Registration failed: " + error.message);
+      setError(error.message);
     }
   };
 
@@ -31,18 +38,22 @@ const RegisterPage = () => {
       <Typography variant="h4" gutterBottom>
         Register
       </Typography>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       <Box
         component="form"
         onSubmit={handleSubmit}
         sx={{ display: "flex", flexDirection: "column", gap: 2 }}
       >
         <TextField
-          label="Email"
-          type="email"
+          label="Username"
           variant="outlined"
           fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
           required
         />
         <TextField
@@ -52,6 +63,7 @@ const RegisterPage = () => {
           fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          helperText="Password must be at least 8 characters long and include at least one letter, one number, and one special character"
           required
         />
         <Button

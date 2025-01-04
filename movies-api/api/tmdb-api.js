@@ -116,4 +116,3 @@ export const getSimilarMovies = async (movieId, page = 1) => {
     }
 };
 
-
