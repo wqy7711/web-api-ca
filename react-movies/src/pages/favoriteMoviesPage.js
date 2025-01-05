@@ -1,62 +1,73 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import PageTemplate from "../components/templateMovieListPage";
 import { MoviesContext } from "../contexts/moviesContext";
-import { useQueries } from "react-query";
+import { useAuth } from "../contexts/authContext";
+import { getFavorites } from "../api/movies-api";
 import { getMovie } from "../api/tmdb-api";
-import Spinner from '../components/spinner'
+import Spinner from '../components/spinner';
 import RemoveFromFavorites from "../components/cardIcons/removeFromFavorites";
 import WriteReview from "../components/cardIcons/writeReview";
-import SortDropdown from "../components/sortDropdown";
-import { sortMovies } from "../util";
-import PaginationWrapper from "../components/paginationWrapper"
 
 const FavoriteMoviesPage = () => {
-  const [sortBy, setSortBy] = useState("");
-  const {favorites: movieIds } = useContext(MoviesContext);
+  const { user } = useAuth();
+  const context = useContext(MoviesContext);
+  const [favorites, setFavorites] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Create an array of queries and run in parallel.
-  const favoriteMovieQueries = useQueries(
-    movieIds.map((movieId) => {
-      return {
-        queryKey: ["movie", { id: movieId }],
-        queryFn: getMovie,
-      };
-    })
-  );
-  // Check if any of the parallel queries is still loading.
-  const isLoading = favoriteMovieQueries.find((m) => m.isLoading === true);
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+  
+        if (user) {
+          const favoriteMovies = await getFavorites(user.username);
+          console.log("Fetched favorite movies:", favoriteMovies);
+  
+          if (Array.isArray(favoriteMovies) && favoriteMovies.length > 0) {
+            setFavorites(favoriteMovies);
+          } else {
+            setFavorites([]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch favorite movies:", err);
+        setError("Failed to load favorite movies. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchFavorites();
+  }, [user]);
 
-  if (isLoading) {
+  const handleFavoriteRemoved = (movieId) => {
+    setFavorites((prevFavorites) =>
+      prevFavorites.filter((movie) => movie.id !== movieId)
+    );
+  };
+
+  if (loading) {
     return <Spinner />;
   }
 
-  const movies = favoriteMovieQueries.map((q) => {
-    q.data.genre_ids = q.data.genres.map(g => g.id)
-    return q.data
-  });
-
-  const sortedMovies = sortMovies(movies, sortBy);
+  if (error) {
+    return <p style={{ color: "red" }}>{error}</p>;
+  }
 
   return (
-    <>
-    <SortDropdown sortBy={sortBy} setSortBy={setSortBy} />
-    <PaginationWrapper items={sortedMovies}>
-        {(paginatedMovies) => (
-          <PageTemplate
-          title="Favorite Movies"
-          movies={paginatedMovies}
-          action={(movie) => {
-            return (
-          <>
-          <RemoveFromFavorites movie={movie} />
+    <PageTemplate
+      title="Favorite Movies"
+      movies={favorites}
+      action={(movie) => (
+        <>
+          <RemoveFromFavorites movie={movie}
+          onFavoriteRemoved={handleFavoriteRemoved} />
           <WriteReview movie={movie} />
-          </>
-        );
-      }}
+        </>
+      )}
     />
-  )}
-      </PaginationWrapper>
-    </>
   );
 };
 

@@ -3,18 +3,11 @@ import User from './userModel';
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import authenticate from '../../authenticate';
+import { getMovie } from "../tmdb-api";
 
 
 const router = express.Router(); // eslint-disable-line
 
-router.get('/:userName/favorites', authenticate, asyncHandler(async (req, res) => {
-    const userName = req.params.userName;
-    const user = await User.getFavorites(userName);
-    if (!user) {
-        return res.status(404).json({ code: 404, msg: 'User not found.' });
-    }
-    res.status(200).json(user.favorites);
-}));
 
 router.post('/:userName/favorites', authenticate, asyncHandler(async (req, res) => {
     const userName = req.params.userName;
@@ -43,6 +36,32 @@ router.delete('/:userName/favorites/:movieId', authenticate, asyncHandler(async 
 
     res.status(200).json({ code: 200, msg: 'Movie removed from favorites.', user });
 }));
+
+router.get(
+    "/:userName/favorites",
+    asyncHandler(async (req, res) => {
+      const { userName } = req.params;
+  
+      const user = await User.findOne({ username: userName }).select("favorites");
+      if (!user) {
+        return res.status(404).json({ message: "User not found." });
+      }
+  
+      const favoriteIds = user.favorites || [];
+      console.log("Fetched favorite IDs:", favoriteIds);
+  
+      try {
+        const moviePromises = favoriteIds.map((id) => getMovie(id));
+        const movies = await Promise.all(moviePromises);
+        console.log("Fetched movies:", movies);
+  
+        res.status(200).json(movies);
+      } catch (error) {
+        console.error("Error fetching movie details:", error.message);
+        res.status(500).json({ message: "Failed to fetch favorite movies." });
+      }
+    })
+  );
 
 // Get all users
 router.get('/', async (req, res) => {

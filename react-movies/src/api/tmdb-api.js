@@ -93,7 +93,7 @@ export const getMovieReviews = ({ queryKey }) => {
   const [, idPart] = queryKey;
   const { id } = idPart;
   return fetch(
-    `${baseUrl}/movies/tmdb/${id}/reviews`, {
+    `${baseUrl}/reviews/movie/${id}`, {
       headers: getHeaders()
     }
   ).then((response) => {

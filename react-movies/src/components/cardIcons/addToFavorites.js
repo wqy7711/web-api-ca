@@ -1,14 +1,24 @@
 import React, { useContext } from "react";
 import { MoviesContext } from "../../contexts/moviesContext";
+import { useAuth } from "../../contexts/authContext";
 import IconButton from "@mui/material/IconButton";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import { addToFavorites } from '../../api/movies-api';
 
-const AddToFavoritesIcon = ({ movie }) => {
+const AddToFavoritesIcon = ({ movie, username }) => {
   const context = useContext(MoviesContext);
+  const { user } = useAuth();
 
-  const handleAddToFavorites = (e) => {
+  const handleAddToFavorites = async (e) => {
     e.preventDefault();
-    context.addToFavorites(movie);
+    try {
+      if (user) {
+        await addToFavorites(user.username, movie.id);
+        context.addToFavorites(movie);
+      }
+    } catch (error) {
+      console.error('Failed to add to favorites:', error);
+    }
   };
 
   return (

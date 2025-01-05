@@ -46,9 +46,9 @@ UserSchema.statics.removeFavorite = function(username, movieId) {
   );
 };
 
-UserSchema.statics.getFavorites = function(username) {
-  return this.findOne({ username: username })
-    .select('favorites');
+UserSchema.statics.getFavorites = async function (username) {
+  const user = await this.findOne({ username: username.toLowerCase() }).select('favorites');
+  return user ? user.favorites || [] : [];
 };
 
 UserSchema.pre('save', async function(next) {

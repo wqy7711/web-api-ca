@@ -2,21 +2,57 @@ import express from 'express';
 import Review from './reviewModel';
 import asyncHandler from 'express-async-handler';
 import authenticate from '../../authenticate';
+import { getMovieReviews } from '../tmdb-api';
 
 const router = express.Router();
 
-// Get all reviews for a movie
+// Get all reviews for a movie (combines both TMDB and local reviews)
 router.get('/movie/:id', asyncHandler(async (req, res) => {
     const movieId = parseInt(req.params.id);
-    const reviews = await Review.findByMovieId(movieId);
-    res.status(200).json(reviews);
+    try {
+        // Get reviews from both sources in parallel
+        const [tmdbReviews, localReviews] = await Promise.all([
+            getMovieReviews(movieId),
+            Review.findByMovieId(movieId)
+        ]);
+
+        // Combine and format reviews
+        const formattedTmdbReviews = tmdbReviews.results.map(review => ({
+            id: review.id,
+            movieId: movieId,
+            author: review.author,
+            content: review.content,
+            rating: Math.round(review.author_details.rating / 2), // Convert TMDB's 10-point scale to our 5-point scale
+            createdAt: review.created_at,
+            source: 'tmdb'
+        }));
+
+        const formattedLocalReviews = localReviews.map(review => ({
+            ...review.toObject(),
+            source: 'local'
+        }));
+
+        // Combine all reviews and sort by date
+        const allReviews = [...formattedTmdbReviews, ...formattedLocalReviews]
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        res.status(200).json(allReviews);
+    } catch (error) {
+        res.status(500).json({
+            message: error.message,
+            status_code: 500
+        });
+    }
 }));
 
 // Get a specific review
 router.get('/:id', asyncHandler(async (req, res) => {
     const review = await Review.findById(req.params.id);
     if (review) {
-        res.status(200).json(review);
+        res.status(200).json({
+            ...review.toObject(),
+            source: 'local'
+        });
     } else {
         res.status(404).json({
             message: 'The review you requested could not be found.',
@@ -28,7 +64,10 @@ router.get('/:id', asyncHandler(async (req, res) => {
 // Get all reviews by a user
 router.get('/user/:userId', authenticate, asyncHandler(async (req, res) => {
     const reviews = await Review.findByUserId(req.params.userId);
-    res.status(200).json(reviews);
+    res.status(200).json(reviews.map(review => ({
+        ...review.toObject(),
+        source: 'local'
+    })));
 }));
 
 // Get the latest reviews
@@ -54,7 +93,10 @@ router.get('/latest/:userId', authenticate, asyncHandler(async (req, res) => {
         });
     }
 
-    res.status(200).json(reviews);
+    res.status(200).json(reviews.map(review => ({
+        ...review.toObject(),
+        source: 'local'
+    })));
 }));
 
 // Create a new review
@@ -76,7 +118,10 @@ router.post('/', authenticate, asyncHandler(async (req, res) => {
     });
     
     await review.save();
-    res.status(201).json(review);
+    res.status(201).json({
+        ...review.toObject(),
+        source: 'local'
+    });
 }));
 
 // Update a review
@@ -110,7 +155,10 @@ router.put('/:id', authenticate, asyncHandler(async (req, res) => {
     if (req.body.rating) review.rating = req.body.rating;
 
     await review.save();
-    res.status(200).json(review);
+    res.status(200).json({
+        ...review.toObject(),
+        source: 'local'
+    });
 }));
 
 // Delete a review

@@ -2,19 +2,23 @@ import fetch from 'node-fetch';
 
 
 // Movies API
-export const getMovie = async (id) => {
+export const getMovie = async (movieId) => {
     try {
-        const response = await fetch(
-            `https://api.themoviedb.org/3/movie/${id}?api_key=${process.env.TMDB_KEY}`
-        );
-        if (!response.ok) {
-            throw new Error((await response.json()).message);
-        }
-        return await response.json();
+      const response = await fetch(
+        `https://api.themoviedb.org/3/movie/${movieId}?api_key=${process.env.TMDB_KEY}`
+      );
+  
+      if (!response.ok) {
+        throw new Error(`Failed to fetch movie with ID ${movieId}`);
+      }
+  
+      const movieData = await response.json();
+      return movieData;
     } catch (error) {
-        throw error;
+      console.error("Error fetching movie:", error.message);
+      throw error;
     }
-};
+  };
 
 export const discoverMovies = async (page = 1) => {
     try {
