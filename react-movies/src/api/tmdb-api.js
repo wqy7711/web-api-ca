@@ -89,25 +89,16 @@ export const getMovieImages = ({ queryKey }) => {
   });
 };
 
-export const getMovieReviews = ({ queryKey }) => {
-  const [, idPart] = queryKey;
-  const { id } = idPart;
-  return fetch(
-    `${baseUrl}/reviews/movie/${id}`, {
-      headers: getHeaders()
-    }
-  ).then((response) => {
-    if (!response.ok) {
-      return response.json().then((error) => {
-        throw new Error(error.message || "Something went wrong");
-      });
-    }
-    return response.json();
-  })
-  .catch((error) => {
-    throw error;
-  });
+export const getMovieReviews = async (movieId) => {
+  const response = await fetch(`http://localhost:8080/api/reviews/movie/${movieId}`);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to fetch reviews for movie ID: ${movieId}`);
+  }
+
+  return response.json();
 };
+
 
 export const getUpcomingMovies = () => {
   return fetch(

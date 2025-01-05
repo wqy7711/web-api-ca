@@ -157,17 +157,6 @@ router.get('/tmdb/:id/images', asyncHandler(async (req, res) => {
     }
 }));
 
-router.get('/tmdb/:id/reviews', asyncHandler(async (req, res) => {
-    try {
-        const data = await getMovieReviews(req.params.id);
-        res.status(200).json(data);
-    } catch (error) {
-        res.status(500).json({
-            status_code: 500,
-            message: error.message || 'Internal server error'
-        });
-    }
-}));
 
 // Database routes
 router.get('/', asyncHandler(async (req, res) => {

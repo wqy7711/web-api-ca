@@ -3,47 +3,23 @@ import Review from './reviewModel';
 import asyncHandler from 'express-async-handler';
 import authenticate from '../../authenticate';
 import { getMovieReviews } from '../tmdb-api';
+import ReviewModel from './reviewModel';
+
 
 const router = express.Router();
 
-// Get all reviews for a movie (combines both TMDB and local reviews)
 router.get('/movie/:id', asyncHandler(async (req, res) => {
-    const movieId = parseInt(req.params.id);
+    const { id: movieId } = req.params;
+
     try {
-        // Get reviews from both sources in parallel
-        const [tmdbReviews, localReviews] = await Promise.all([
-            getMovieReviews(movieId),
-            Review.findByMovieId(movieId)
-        ]);
-
-        // Combine and format reviews
-        const formattedTmdbReviews = tmdbReviews.results.map(review => ({
-            id: review.id,
-            movieId: movieId,
-            author: review.author,
-            content: review.content,
-            rating: Math.round(review.author_details.rating / 2), // Convert TMDB's 10-point scale to our 5-point scale
-            createdAt: review.created_at,
-            source: 'tmdb'
-        }));
-
-        const formattedLocalReviews = localReviews.map(review => ({
-            ...review.toObject(),
-            source: 'local'
-        }));
-
-        // Combine all reviews and sort by date
-        const allReviews = [...formattedTmdbReviews, ...formattedLocalReviews]
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-        res.status(200).json(allReviews);
+        const reviews = await getMovieReviews(movieId);
+        res.status(200).json(reviews);
     } catch (error) {
-        res.status(500).json({
-            message: error.message,
-            status_code: 500
-        });
+        console.error('Error fetching reviews from TMDB:', error.message);
+        res.status(500).json({ message: 'Failed to fetch reviews from TMDB.' });
     }
 }));
+  
 
 // Get a specific review
 router.get('/:id', asyncHandler(async (req, res) => {

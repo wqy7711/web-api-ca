@@ -1,51 +1,22 @@
-import React from "react";
-import { useParams, useLocation } from "react-router-dom";
-import PageTemplate from "../components/templateMoviePage";
+import React, { useContext } from "react";
+import { MoviesContext } from "../contexts/moviesContext";
 import MovieReview from "../components/movieReview";
-import { useQuery, useQueryClient } from "react-query";
-import { getMovie, getMovieReviews } from "../api/tmdb-api";
-import Spinner from "../components/spinner";
 
-const MovieReviewPage = () => {
-  const { id: reviewId } = useParams();
-  const location = useLocation();
-  const queryClient = useQueryClient();
+const MovieReviewsPage = ({ movieId }) => {
+  const { myReviews } = useContext(MoviesContext);
 
-  const initialReview = location.state?.review;
-  const initialMovie = location.state?.movie;
+  const review = myReviews[movieId];
 
-  const cachedMovie = queryClient.getQueryData(["movie", { id: initialMovie?.id }]);
-
-  const { data: reviewsData, isLoading: reviewsLoading } = useQuery(
-    ["reviews", { id: initialMovie?.id }],
-    () => getMovieReviews(initialMovie.id),
-    { enabled: !!initialMovie }
-  );
-
-  const { data: movieData, isLoading: movieLoading } = useQuery(
-    ["movie", { id: initialMovie?.id }],
-    () => getMovie(initialMovie.id),
-    { enabled: !!initialMovie && !cachedMovie }
-  );
-
-  if (reviewsLoading || movieLoading) {
-    return <Spinner />;
-  }
-
-  const movie = cachedMovie || movieData || initialMovie;
-  const review =
-    initialReview ||
-    reviewsData?.results.find((r) => r.id === reviewId);
-
-  if (!movie || !review) {
-    return <h1>Data is missing</h1>;
+  if (!review) {
+    return <h3>No review available for this movie.</h3>;
   }
 
   return (
-    <PageTemplate movie={movie}>
+    <div>
+      <h3>Review for Movie ID: {movieId}</h3>
       <MovieReview review={review} />
-    </PageTemplate>
+    </div>
   );
 };
 
-export default MovieReviewPage;
+export default MovieReviewsPage;

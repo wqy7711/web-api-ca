@@ -1,65 +1,46 @@
-import React, { useEffect, useState }  from "react";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import { Link } from "react-router-dom";
-import { getMovieReviews } from "../../api/tmdb-api";
-import { excerpt } from "../../util";
+import React from "react";
 import { useQuery } from "react-query";
-import Spinner from '../spinner'
+import { getMovieReviews } from '../../api/movies-api';
+import Spinner from '../spinner';
 
-export default function MovieReviews({ movie }) {
-  const { data , error, isLoading, isError } = useQuery(
-    ["reviews", { id: movie.id }],
-    getMovieReviews
+
+const MovieReviews = ({ movieId }) => {
+  const { data: reviewsData, isLoading, error } = useQuery(
+    ["reviews", { id: movieId }],
+    () => getMovieReviews(movieId),
+    { enabled: !!movieId }
   );
-  
+
   if (isLoading) {
     return <Spinner />;
   }
 
-  if (isError) {
-    return <h1>{error.message}</h1>;
+  if (error) {
+    return (
+      <p style={{ color: "red" }}>
+        Failed to fetch reviews: {error.message || "Unknown error"}
+      </p>
+    );
   }
-  
-  const reviews = data.results;
+
+  const reviews = reviewsData?.results || [];
+
+  if (reviews.length === 0) {
+    return <p>No reviews available for this movie.</p>;
+  }
 
   return (
-    <TableContainer component={Paper}>
-      <Table sx={{minWidth: 550}} aria-label="reviews table">
-        <TableHead>
-          <TableRow>
-            <TableCell >Author</TableCell>
-            <TableCell align="center">Excerpt</TableCell>
-            <TableCell align="right">More</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {reviews.map((r) => (
-            <TableRow key={r.id}>
-              <TableCell component="th" scope="row">
-                {r.author}
-              </TableCell>
-              <TableCell >{excerpt(r.content)}</TableCell>
-              <TableCell >
-              <Link
-                  to={`/reviews/${r.id}`}
-                  state={{
-                      review: r,
-                      movie: movie,
-                  }}
-                >
-                  Full Review
-                </Link>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+    <div>
+      <h3>Reviews</h3>
+      {reviews.map((review) => (
+        <div key={review.id}>
+          <h4>Author: {review.author}</h4>
+          <p>{review.content}</p>
+          <p>Created At: {new Date(review.created_at).toLocaleDateString()}</p>
+        </div>
+      ))}
+    </div>
   );
-}
+};
+
+export default MovieReviews;

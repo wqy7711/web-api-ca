@@ -125,3 +125,48 @@ export const getFavorites = async (username) => {
       return response.json();
     });
   };
+
+  export const getMovieReviews = async (movieId) => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/reviews/movie/${movieId}`);
+  
+      if (!response.ok) {
+        throw new Error(`Failed to fetch reviews for movie ID: ${movieId}`);
+      }
+  
+      const data = await response.json();
+  
+      return Array.isArray(data) ? { results: data } : data;
+    } catch (error) {
+      console.error("Error fetching movie reviews:", error.message);
+      throw error;
+    }
+  };
+  
+  
+
+  export const addMovieReview = async (review) => {
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/reviews/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: localStorage.getItem("token"),
+          },
+          body: JSON.stringify(review),
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error("Failed to add movie review.");
+      }
+  
+      return response.json();
+    } catch (error) {
+      console.error("Error adding movie review:", error.message);
+      throw error;
+    }
+  };
+  
