@@ -8,7 +8,7 @@ import { getMovie } from "../tmdb-api";
 
 const router = express.Router(); // eslint-disable-line
 
-
+//Favorite
 router.post('/:userName/favorites', authenticate, asyncHandler(async (req, res) => {
     const userName = req.params.userName;
     const { movieId } = req.body;
@@ -62,6 +62,27 @@ router.get(
       }
     })
   );
+
+//Must Watch
+router.get('/:username/mustWatch', asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const mustWatch = await User.getMustWatch(username);
+    res.status(200).json(mustWatch);
+  }));
+  
+  router.post('/:username/mustWatch', asyncHandler(async (req, res) => {
+    const { username } = req.params;
+    const { movieId } = req.body;
+    const updatedUser = await User.addMustWatch(username, movieId);
+    res.status(200).json(updatedUser.mustWatch);
+  }));
+  
+  router.delete('/:username/mustWatch/:movieId', asyncHandler(async (req, res) => {
+    const { username, movieId } = req.params;
+    const updatedUser = await User.removeMustWatch(username, movieId);
+    res.status(200).json(updatedUser.mustWatch);
+  }));
+
 
 // Get all users
 router.get('/', async (req, res) => {

@@ -1,19 +1,25 @@
 import React, { useContext } from "react";
-import { MoviesContext } from "../../contexts/moviesContext";
 import IconButton from "@mui/material/IconButton";
 import PlaylistAddIcon from "@mui/icons-material/PlaylistAdd";
+import { addToMustWatch } from '../../api/movies-api';
+import { useAuth } from "../../contexts/authContext";
 
 const AddToMustWatchIcon = ({ movie }) => {
-  const { addToMustWatch } = useContext(MoviesContext);
+  const { user } = useAuth();
 
-  const handleAddToMustWatch = (e) => {
+  const handleAddToMustWatch = async (e) => {
     e.preventDefault();
-    addToMustWatch(movie);
+    try {
+      await addToMustWatch(user.username, movie.id);
+      alert("Movie added to Must Watch!");
+    } catch (error) {
+      console.error("Failed to add to must watch:", error);
+    }
   };
 
   return (
     <IconButton aria-label="add to must watch" onClick={handleAddToMustWatch}>
-      <PlaylistAddIcon color="primary" fontSize="large" />
+      <PlaylistAddIcon color="primary" />
     </IconButton>
   );
 };

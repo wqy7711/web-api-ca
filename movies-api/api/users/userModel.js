@@ -19,7 +19,11 @@ const UserSchema = new Schema({
   favorites: { 
     type: [Number],
     default: [] 
-  }
+  },
+  mustWatch: {
+    type: [Number], 
+    default: [] 
+  },
 });
 
 UserSchema.methods.comparePassword = async function (passw) { 
@@ -49,6 +53,27 @@ UserSchema.statics.removeFavorite = function(username, movieId) {
 UserSchema.statics.getFavorites = async function (username) {
   const user = await this.findOne({ username: username.toLowerCase() }).select('favorites');
   return user ? user.favorites || [] : [];
+};
+
+UserSchema.statics.addMustWatch = function (username, movieId) {
+  return this.findOneAndUpdate(
+    { username: username },
+    { $addToSet: { mustWatch: movieId } },
+    { new: true }
+  );
+};
+
+UserSchema.statics.removeMustWatch = function (username, movieId) {
+  return this.findOneAndUpdate(
+    { username: username },
+    { $pull: { mustWatch: movieId } },
+    { new: true }
+  );
+};
+
+UserSchema.statics.getMustWatch = async function (username) {
+  const user = await this.findOne({ username }).select('mustWatch');
+  return user ? user.mustWatch || [] : [];
 };
 
 UserSchema.pre('save', async function(next) {

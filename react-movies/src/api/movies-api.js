@@ -81,3 +81,47 @@ export const getFavorites = async (username) => {
       throw new Error('Invalid response format for favorites.');
     }
   };
+
+  export const getMustWatch = async (username) => {
+    const response = await fetch(
+      `${baseUrl}/users/${username}/mustWatch`,
+      { headers: getHeaders() }
+    );
+  
+    if (!response.ok) {
+      throw new Error('Failed to fetch mustWatch list.');
+    }
+  
+    return response.json();
+  };
+  
+  export const addToMustWatch = (username, movieId) => {
+    return fetch(
+      `${baseUrl}/users/${username}/mustWatch`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({ movieId }),
+      }
+    ).then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to add to mustWatch.');
+      }
+      return response.json();
+    });
+  };
+  
+  export const removeFromMustWatch = (username, movieId) => {
+    return fetch(
+      `${baseUrl}/users/${username}/mustWatch/${movieId}`,
+      {
+        method: 'DELETE',
+        headers: getHeaders(),
+      }
+    ).then((response) => {
+      if (!response.ok) {
+        throw new Error('Failed to remove from mustWatch.');
+      }
+      return response.json();
+    });
+  };

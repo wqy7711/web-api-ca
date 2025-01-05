@@ -1,56 +1,62 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import PageTemplate from "../components/templateMovieListPage";
-import { MoviesContext } from "../contexts/moviesContext";
-import { useQueries } from "react-query";
-import { getMovie } from "../api/tmdb-api";
 import Spinner from "../components/spinner";
 import RemoveFromMustWatch from "../components/cardIcons/removeFromMustWatch";
-import SortDropdown from "../components/sortDropdown";
-import { sortMovies } from "../util";
-import PaginationWrapper from "../components/paginationWrapper";
-
-
+import { getMustWatch, getMovie } from "../api/movies-api";
+import { useAuth } from "../contexts/authContext";
 
 const MustWatchMoviesPage = () => {
-  const [sortBy, setSortBy] = useState("");
-  const { mustWatch: movieIds } = useContext(MoviesContext);
+  const { user } = useAuth();
+  const [movies, setMovies] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const mustWatchMovieQueries = useQueries(
-    movieIds.map((movieId) => {
-      return {
-        queryKey: ["movie", { id: movieId }],
-        queryFn: getMovie,
-      };
-    })
-  );
+  useEffect(() => {
+    const fetchMustWatch = async () => {
+      try {
+        setLoading(true);
+        const movieIds = await getMustWatch(user.username);
+        const movieDetails = await Promise.all(
+          movieIds.map((id) => getMovie(id))
+        );
+        setMovies(movieDetails);
+      } catch (err) {
+        console.error("Failed to fetch must watch movies:", err);
+        setError("Failed to load must watch movies.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const isLoading = mustWatchMovieQueries.find((m) => m.isLoading === true);
+    if (user) {
+      fetchMustWatch();
+    }
+  }, [user]);
 
-  if (isLoading) {
+  const handleMovieRemoved = (movieId) => {
+    setMovies((prevMovies) =>
+      prevMovies.filter((movie) => movie.id !== movieId)
+    );
+  };
+
+  if (loading) {
     return <Spinner />;
   }
 
-  const movies = mustWatchMovieQueries.map((q) => {
-    q.data.genre_ids = q.data.genres.map((g) => g.id);
-    return q.data;
-  });
-  const sortedMovies = sortMovies(movies, sortBy);
+  if (error) {
+    return <p style={{ color: "red" }}>{error}</p>;
+  }
 
   return (
-    <>
-    <SortDropdown sortBy={sortBy} setSortBy={setSortBy} />
-    <PaginationWrapper items={sortedMovies}>
-        {(paginatedMovies) => (
     <PageTemplate
       title="Must Watch Movies"
-      movies={paginatedMovies}
-      action={(movie) => {
-        return <RemoveFromMustWatch movie={movie} />;
-      }}
+      movies={movies}
+      action={(movie) => (
+        <RemoveFromMustWatch
+          movie={movie}
+          onRemoved={handleMovieRemoved}/>
+      )}
     />
-  )}
-      </PaginationWrapper>
-    </>
   );
 };
 
