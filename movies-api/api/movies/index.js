@@ -80,18 +80,15 @@ router.get('/tmdb/genres', asyncHandler(async (req, res) => {
     }
 }));
 
-router.get('/tmdb/search', asyncHandler(async (req, res) => {
-    const { query, genre, year, page = 1 } = req.query;
+router.get('/tmdb/search', async (req, res) => {
     try {
-        const data = await searchMovies(query, genre, year, page);
-        res.status(200).json(data);
+        const { query, genre, year, page } = req.query;
+        const result = await searchMovies(query, genre, year, page);
+        res.status(200).json(result);
     } catch (error) {
-        res.status(500).json({
-            status_code: 500,
-            message: error.message || 'Internal server error'
-        });
+        res.status(500).json({ message: "Failed to fetch search results." });
     }
-}));
+});
 
 router.get('/tmdb/:id', asyncHandler(async (req, res) => {
     try {
